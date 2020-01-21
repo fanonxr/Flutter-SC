@@ -1,20 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:sc_media_flutter/widgets/header.dart';
 
-class Search extends StatefulWidget {
+class Timeline extends StatefulWidget {
   @override
-  _SearchState createState() => _SearchState();
+  _TimelineState createState() => _TimelineState();
 }
 
-class _SearchState extends State<Search> {
+class _TimelineState extends State<Timeline> {
   @override
-  Widget build(BuildContext context) {
-    return Text('Search');
-  }
-}
-
-class UserResult extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Text("User Result");
+  Widget build(context) {
+    return Scaffold(
+      appBar: header(context, isAppTitle: true),
+      body: Text("Timeline"),
+    );
   }
 }
