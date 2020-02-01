@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:sc_media_flutter/widgets/header.dart';
 
@@ -7,14 +9,24 @@ class CreateAccount extends StatefulWidget {
 }
 
 class _CreateAccountState extends State<CreateAccount> {
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
   final _formKey = GlobalKey<FormState>();
   // getting the username when the submit button is tapped
   String username;
 
   // method to handle the submission of the form
   submit() {
-    _formKey.currentState.save();
-    Navigator.pop(context, username);
+    final form = _formKey.currentState;
+    if (form.validate()) {
+      form.save();
+      SnackBar snackBar = SnackBar(
+        content: Text("Welcome $username"),
+      );
+      _scaffoldKey.currentState.showSnackBar(snackBar);
+      Timer(Duration(seconds: 2), () {
+        Navigator.pop(context, username);
+      });
+    }
   }
 
   @override
@@ -40,8 +52,18 @@ class _CreateAccountState extends State<CreateAccount> {
                   child: Container(
                     child: Form(
                       key: _formKey,
+                      autovalidate: true,
                       child: TextFormField(
                         onSaved: (value) => username = value,
+                        validator: (value) {
+                          if (value.trim().length < 3 || value.isEmpty) {
+                            return "Username too short";
+                          } else if (value.trim().length > 15) {
+                            return "Username is too long";
+                          } else {
+                            return null;
+                          }
+                        },
                         decoration: InputDecoration(
                             border: OutlineInputBorder(),
                             labelText: "UserName",
