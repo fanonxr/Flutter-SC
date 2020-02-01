@@ -1,16 +1,17 @@
-import 'dart:developer';
-
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sc_media_flutter/pages/activity_feed.dart';
+import 'package:sc_media_flutter/pages/create_account.dart';
 import 'package:sc_media_flutter/pages/profile.dart';
 import 'package:sc_media_flutter/pages/search.dart';
-import 'package:sc_media_flutter/pages/timeline.dart';
 import 'package:sc_media_flutter/pages/upload.dart';
 
 // bringing in google sign in
 final GoogleSignIn googleSignIn = GoogleSignIn();
+final usersRef = Firestore.instance.collection('users');
+final DateTime timestamp = DateTime.now();
 
 class Home extends StatefulWidget {
   @override
@@ -45,7 +46,7 @@ class _HomeState extends State<Home> {
   // handle signing in
   handleSignIn(GoogleSignInAccount account) {
     if (account != null) {
-      print('User Signed In: $account');
+      createUserInFirestore();
       setState(() {
         isAuth = true;
       });
@@ -54,6 +55,33 @@ class _HomeState extends State<Home> {
         isAuth = false;
       });
     }
+  }
+
+  // method to create the user into the firestore db
+  createUserInFirestore() async {
+    // check if the user exists in the db based on their id
+    final GoogleSignInAccount user = googleSignIn.currentUser;
+    // get the id of the user
+    final DocumentSnapshot doc = await usersRef.document(user.id).get();
+
+    // if the user does not exists, take them to the create the account page
+    if (!doc.exists) {
+      final username = await Navigator.push(
+          context, MaterialPageRoute(builder: (context) => CreateAccount()));
+
+      // create the user doc to store in firebase
+      usersRef.document(user.id).setData({
+        "id": user.id,
+        "username": username,
+        "photoUrl": user.photoUrl,
+        "email": user.email,
+        "displayName": user.displayName,
+        "bio": "",
+        "timestamp": timestamp
+      });
+    }
+
+    // get user name from create account page => will make a new user doc in the users collection
   }
 
   // dispose of the page
@@ -90,7 +118,11 @@ class _HomeState extends State<Home> {
     return Scaffold(
       body: PageView(
         children: <Widget>[
-          Timeline(),
+          // Timeline(),
+          RaisedButton(
+            child: Text('Logout'),
+            onPressed: logout,
+          ),
           ActivityFeed(),
           Upload(),
           Search(),
