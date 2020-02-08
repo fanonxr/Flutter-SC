@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:sc_media_flutter/models/user.dart';
@@ -6,6 +7,7 @@ import 'package:sc_media_flutter/pages/edit_profile.dart';
 import 'package:sc_media_flutter/pages/home.dart';
 import 'package:sc_media_flutter/pages/timeline.dart';
 import 'package:sc_media_flutter/widgets/header.dart';
+import 'package:sc_media_flutter/widgets/post.dart';
 import 'package:sc_media_flutter/widgets/progress.dart';
 
 class Profile extends StatefulWidget {
@@ -18,6 +20,34 @@ class Profile extends StatefulWidget {
 
 class _ProfileState extends State<Profile> {
   final String currentUserId = currentUser?.id;
+  bool isLoading = false;
+  int postCount = 0;
+  List<Post> posts = [];
+
+  // get the profile post data of the user
+  @override
+  void initState() {
+    super.initState();
+    getProfilePosts();
+  }
+
+  getProfilePosts() async {
+    setState(() {
+      isLoading = true;
+    });
+    // await getting the user post data in order from firebase
+    QuerySnapshot snapshot = await postsRef
+        .document(widget.profileId)
+        .collection('userPosts')
+        .orderBy('timestamp', descending: true)
+        .getDocuments();
+
+    setState(() {
+      isLoading = false;
+      postCount = snapshot.documents.length;
+      posts = snapshot.documents.map((doc) => Post.fromDocument(doc)).toList();
+    });
+  }
 
   // method to edit the user profile
   editProfile() {
@@ -110,7 +140,7 @@ class _ProfileState extends State<Profile> {
                       mainAxisSize: MainAxisSize.max,
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: <Widget>[
-                        buildCountColumn("posts", 0),
+                        buildCountColumn("posts", postCount),
                         buildCountColumn("followers", 0),
                         buildCountColumn("following", 0),
                       ],
@@ -154,12 +184,28 @@ class _ProfileState extends State<Profile> {
     );
   }
 
+  // method to build the profile post aft we fetch them
+  buildProfilePost() {
+    // loading
+    if (isLoading) {
+      return circularProgress();
+    }
+    // return a list of the users posts
+    return Column(children: posts);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: header(context, isAppTitle: false, titleText: "Profile"),
       body: ListView(
-        children: <Widget>[buildProfileHeader()],
+        children: <Widget>[
+          buildProfileHeader(),
+          Divider(
+            height: 0.0,
+          ),
+          buildProfilePost()
+        ],
       ),
     );
   }
