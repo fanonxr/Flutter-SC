@@ -8,6 +8,7 @@ import 'package:sc_media_flutter/pages/home.dart';
 import 'package:sc_media_flutter/pages/timeline.dart';
 import 'package:sc_media_flutter/widgets/header.dart';
 import 'package:sc_media_flutter/widgets/post.dart';
+import 'package:sc_media_flutter/widgets/post_tile.dart';
 import 'package:sc_media_flutter/widgets/progress.dart';
 
 class Profile extends StatefulWidget {
@@ -191,7 +192,25 @@ class _ProfileState extends State<Profile> {
       return circularProgress();
     }
     // return a list of the users posts
-    return Column(children: posts);
+    // return Column(children: posts);
+
+    List<GridTile> gridTiles = [];
+    posts.forEach((element) {
+      gridTiles.add(GridTile(
+        child: PostTile(
+          post: element,
+        ),
+      ));
+    });
+    return GridView.count(
+      crossAxisCount: 3,
+      childAspectRatio: 1.0,
+      mainAxisSpacing: 1.5,
+      crossAxisSpacing: 1.5,
+      shrinkWrap: true,
+      physics: NeverScrollableScrollPhysics(),
+      children: gridTiles,
+    );
   }
 
   @override
