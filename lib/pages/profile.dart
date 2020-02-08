@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:sc_media_flutter/models/user.dart';
 import 'package:sc_media_flutter/pages/edit_profile.dart';
 import 'package:sc_media_flutter/pages/home.dart';
@@ -24,6 +25,7 @@ class _ProfileState extends State<Profile> {
   bool isLoading = false;
   int postCount = 0;
   List<Post> posts = [];
+  String postOrientation = "grid";
 
   // get the profile post data of the user
   @override
@@ -186,30 +188,82 @@ class _ProfileState extends State<Profile> {
   }
 
   // method to build the profile post aft we fetch them
-  buildProfilePost() {
+  buildProfilePosts() {
     // loading
     if (isLoading) {
       return circularProgress();
-    }
-    // return a list of the users posts
-    // return Column(children: posts);
-
-    List<GridTile> gridTiles = [];
-    posts.forEach((element) {
-      gridTiles.add(GridTile(
-        child: PostTile(
-          post: element,
+    } else if (posts.isEmpty) {
+      return Container(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            SvgPicture.asset(
+              'assets/images/no_content.svg',
+              height: 260.0,
+            ),
+            Padding(
+              padding: EdgeInsets.only(top: 20.0),
+              child: Text(
+                "No Content",
+                style: TextStyle(
+                    color: Colors.redAccent,
+                    fontSize: 40.0,
+                    fontWeight: FontWeight.bold),
+              ),
+            )
+          ],
         ),
-      ));
+      );
+    } else if (postOrientation == "grid") {
+      // display the grid view
+      List<GridTile> gridTiles = [];
+      posts.forEach((element) {
+        gridTiles.add(GridTile(
+          child: PostTile(
+            post: element,
+          ),
+        ));
+      });
+      return GridView.count(
+        crossAxisCount: 3,
+        childAspectRatio: 1.0,
+        mainAxisSpacing: 1.5,
+        crossAxisSpacing: 1.5,
+        shrinkWrap: true,
+        physics: NeverScrollableScrollPhysics(),
+        children: gridTiles,
+      );
+    } else if (postOrientation == "list") {
+      return Column(children: posts);
+    }
+  }
+
+  // method to set the post orientation when it is clicked
+  setPostOrientation(String postOrientation) {
+    setState(() {
+      this.postOrientation = postOrientation;
     });
-    return GridView.count(
-      crossAxisCount: 3,
-      childAspectRatio: 1.0,
-      mainAxisSpacing: 1.5,
-      crossAxisSpacing: 1.5,
-      shrinkWrap: true,
-      physics: NeverScrollableScrollPhysics(),
-      children: gridTiles,
+  }
+
+  // method to buidl the toggle between the grid of column image layout
+  buildTogglePostOrientation() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: <Widget>[
+        IconButton(
+          onPressed: () => setPostOrientation("grid"),
+          icon: Icon(Icons.grid_on),
+          color: postOrientation == "grid"
+              ? Theme.of(context).primaryColor
+              : Colors.grey,
+        ),
+        IconButton(
+            onPressed: () => setPostOrientation("list"),
+            icon: Icon(Icons.list),
+            color: postOrientation == "list"
+                ? Theme.of(context).primaryColor
+                : Colors.grey),
+      ],
     );
   }
 
@@ -220,10 +274,12 @@ class _ProfileState extends State<Profile> {
       body: ListView(
         children: <Widget>[
           buildProfileHeader(),
+          Divider(),
+          buildTogglePostOrientation(),
           Divider(
             height: 0.0,
           ),
-          buildProfilePost()
+          buildProfilePosts()
         ],
       ),
     );
