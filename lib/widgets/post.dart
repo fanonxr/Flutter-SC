@@ -140,6 +140,9 @@ class _PostState extends State<Post> {
           .collection('userPosts')
           .document(postId)
           .updateData({'likes.$currentUserId': false});
+      // remvoe the like from the feed
+      removeLikeFromActivityFeed();
+      // update the state
       setState(() {
         likeCount -= 1;
         isLiked = false;
@@ -151,6 +154,10 @@ class _PostState extends State<Post> {
           .collection('userPosts')
           .document(postId)
           .updateData({'likes.$currentUserId': true});
+
+      // send this like to the activity
+      addLikeToActivityFeed();
+      // update state
       setState(() {
         likeCount += 1;
         isLiked = true;
@@ -161,6 +168,44 @@ class _PostState extends State<Post> {
         setState(() {
           showHeart = false;
         });
+      });
+    }
+  }
+
+  // method to add an like to the activity feed
+  addLikeToActivityFeed() {
+    // add a notification to post owners feed
+    bool isNotPostOwner = currentUserId != ownerId;
+    if (isNotPostOwner) {
+      activityFeedRef
+          .document(ownerId)
+          .collection("feedItems")
+          .document(postId)
+          .setData({
+        "type": "like",
+        "username": currentUser.username,
+        'userId': currentUser.id,
+        "userProfilieImg": currentUser.photoUrl,
+        "postId": postId,
+        "mediaUrl": mediaUrl,
+        "timestamp": timestamp
+      });
+    }
+  }
+
+  // method to remove the notification
+  removeLikeFromActivityFeed() {
+    bool isNotPostOwner = currentUserId != ownerId;
+    if (isNotPostOwner) {
+      activityFeedRef
+          .document(ownerId)
+          .collection("feedItems")
+          .document(postId)
+          .get()
+          .then((doc) {
+        if (doc.exists) {
+          doc.reference.delete();
+        }
       });
     }
   }
