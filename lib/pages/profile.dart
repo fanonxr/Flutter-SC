@@ -187,7 +187,7 @@ class _ProfileState extends State<Profile> {
     );
   }
 
-  // method to build the profile post aft we fetch them
+  // method to build the profile post after fetch them
   buildProfilePosts() {
     // loading
     if (isLoading) {
