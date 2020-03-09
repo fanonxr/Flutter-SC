@@ -21,13 +21,15 @@ class _SearchState extends State<Search> {
     Future<QuerySnapshot> users = usersRef
         .where("displayName", isGreaterThanOrEqualTo: query)
         .getDocuments();
+
     setState(() {
       searchResultsFuture = users;
     });
   }
 
   clearSearch() {
-    searchController.clear();
+    WidgetsBinding.instance
+        .addPostFrameCallback((_) => searchController.clear());
   }
 
   AppBar buildSearchField() {
