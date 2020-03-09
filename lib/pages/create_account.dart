@@ -11,18 +11,15 @@ class CreateAccount extends StatefulWidget {
 class _CreateAccountState extends State<CreateAccount> {
   final _scaffoldKey = GlobalKey<ScaffoldState>();
   final _formKey = GlobalKey<FormState>();
-  // getting the username when the submit button is tapped
   String username;
 
-  // method to handle the submission of the form
   submit() {
     final form = _formKey.currentState;
+
     if (form.validate()) {
       form.save();
-      SnackBar snackBar = SnackBar(
-        content: Text("Welcome $username"),
-      );
-      _scaffoldKey.currentState.showSnackBar(snackBar);
+      SnackBar snackbar = SnackBar(content: Text("Welcome $username!"));
+      _scaffoldKey.currentState.showSnackBar(snackbar);
       Timer(Duration(seconds: 2), () {
         Navigator.pop(context, username);
       });
@@ -32,17 +29,19 @@ class _CreateAccountState extends State<CreateAccount> {
   @override
   Widget build(BuildContext parentContext) {
     return Scaffold(
-      appBar: header(context, titleText: "Sign Up"),
+      key: _scaffoldKey,
+      appBar: header(context,
+          titleText: "Set up your profile", removeBackButton: true),
       body: ListView(
         children: <Widget>[
           Container(
             child: Column(
               children: <Widget>[
                 Padding(
-                  padding: EdgeInsets.only(top: 5.0),
+                  padding: EdgeInsets.only(top: 25.0),
                   child: Center(
                     child: Text(
-                      "Create a User Name",
+                      "Create a username",
                       style: TextStyle(fontSize: 25.0),
                     ),
                   ),
@@ -54,21 +53,22 @@ class _CreateAccountState extends State<CreateAccount> {
                       key: _formKey,
                       autovalidate: true,
                       child: TextFormField(
-                        onSaved: (value) => username = value,
-                        validator: (value) {
-                          if (value.trim().length < 3 || value.isEmpty) {
+                        validator: (val) {
+                          if (val.trim().length < 3 || val.isEmpty) {
                             return "Username too short";
-                          } else if (value.trim().length > 15) {
-                            return "Username is too long";
+                          } else if (val.trim().length > 12) {
+                            return "Username too long";
                           } else {
                             return null;
                           }
                         },
+                        onSaved: (val) => username = val,
                         decoration: InputDecoration(
-                            border: OutlineInputBorder(),
-                            labelText: "UserName",
-                            labelStyle: TextStyle(fontSize: 15.0),
-                            hintText: "Must be at least 3 characters"),
+                          border: OutlineInputBorder(),
+                          labelText: "Username",
+                          labelStyle: TextStyle(fontSize: 15.0),
+                          hintText: "Must be at least 3 characters",
+                        ),
                       ),
                     ),
                   ),
@@ -79,8 +79,9 @@ class _CreateAccountState extends State<CreateAccount> {
                     height: 50.0,
                     width: 350.0,
                     decoration: BoxDecoration(
-                        color: Colors.blue,
-                        borderRadius: BorderRadius.circular(7.0)),
+                      color: Colors.blue,
+                      borderRadius: BorderRadius.circular(7.0),
+                    ),
                     child: Center(
                       child: Text(
                         "Submit",
@@ -91,7 +92,7 @@ class _CreateAccountState extends State<CreateAccount> {
                       ),
                     ),
                   ),
-                )
+                ),
               ],
             ),
           )

@@ -10,7 +10,6 @@ import 'package:sc_media_flutter/pages/profile.dart';
 import 'package:sc_media_flutter/pages/search.dart';
 import 'package:sc_media_flutter/pages/upload.dart';
 
-// bringing in google sign in
 final GoogleSignIn googleSignIn = GoogleSignIn();
 final StorageReference storageRef = FirebaseStorage.instance.ref();
 final usersRef = Firestore.instance.collection('users');
@@ -26,31 +25,28 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
-  // to see if its a auth screen or not
   bool isAuth = false;
   PageController pageController;
   int pageIndex = 0;
 
   @override
-  initState() {
+  void initState() {
     super.initState();
     pageController = PageController();
-
-    // when this widget is created, automatically sign in
+    // Detects when user signed in
     googleSignIn.onCurrentUserChanged.listen((account) {
       handleSignIn(account);
-    }, onError: (error) {
-      print('Error signing in ' + error.toString());
+    }, onError: (err) {
+      print('Error signing in: $err');
     });
-    // reauthicate user when app is opened again
+    // Reauthenticate user when app is opened
     googleSignIn.signInSilently(suppressErrors: false).then((account) {
       handleSignIn(account);
     }).catchError((err) {
-      print('Error Signing in: $err');
+      print('Error signing in: $err');
     });
   }
 
-  // handle signing in
   handleSignIn(GoogleSignInAccount account) {
     if (account != null) {
       createUserInFirestore();
@@ -64,19 +60,17 @@ class _HomeState extends State<Home> {
     }
   }
 
-  // method to create the user into the firestore db
   createUserInFirestore() async {
-    // check if the user exists in the db based on their id
+    // 1) check if user exists in users collection in database (according to their id)
     final GoogleSignInAccount user = googleSignIn.currentUser;
-    // get the id of the user
     DocumentSnapshot doc = await usersRef.document(user.id).get();
 
-    // if the user does not exists, take them to the create the account page
     if (!doc.exists) {
+      // 2) if the user doesn't exist, then we want to take them to the create account page
       final username = await Navigator.push(
           context, MaterialPageRoute(builder: (context) => CreateAccount()));
 
-      // create the user doc to store in firebase
+      // 3) get username from create account, use it to make new user document in users collection
       usersRef.document(user.id).setData({
         "id": user.id,
         "username": username,
@@ -91,39 +85,34 @@ class _HomeState extends State<Home> {
     }
 
     currentUser = User.fromDocument(doc);
-    // get user name from create account page => will make a new user doc in the users collection
-    print(currentUser);
-    print(currentUser.username);
   }
 
-  // dispose of the page
   @override
   void dispose() {
     pageController.dispose();
     super.dispose();
   }
 
-  // method to sign into the google
   login() {
     googleSignIn.signIn();
   }
 
-  // handling logging out
   logout() {
     googleSignIn.signOut();
   }
 
-  // when the state of the page is changed
-  onPagedChanged(int pageIndex) {
+  onPageChanged(int pageIndex) {
     setState(() {
       this.pageIndex = pageIndex;
     });
   }
 
-  // method to select the page
-  onPageSelect(int pageIndex) {
-    pageController.animateToPage(pageIndex,
-        duration: Duration(milliseconds: 300), curve: Curves.bounceInOut);
+  onTap(int pageIndex) {
+    pageController.animateToPage(
+      pageIndex,
+      duration: Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
   }
 
   Scaffold buildAuthScreen() {
@@ -138,35 +127,33 @@ class _HomeState extends State<Home> {
           ActivityFeed(),
           Upload(currentUser: currentUser),
           Search(),
-          Profile(profileId: currentUser?.id)
+          Profile(profileId: currentUser?.id),
         ],
         controller: pageController,
-        onPageChanged: onPagedChanged,
+        onPageChanged: onPageChanged,
         physics: NeverScrollableScrollPhysics(),
       ),
       bottomNavigationBar: CupertinoTabBar(
-        currentIndex: pageIndex,
-        onTap: onPageSelect,
-        activeColor: Theme.of(context).primaryColor,
-        items: [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.whatshot),
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.notifications_active),
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.photo_camera),
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.search),
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.account_circle),
-          ),
-        ],
-      ),
+          currentIndex: pageIndex,
+          onTap: onTap,
+          activeColor: Theme.of(context).primaryColor,
+          items: [
+            BottomNavigationBarItem(icon: Icon(Icons.whatshot)),
+            BottomNavigationBarItem(icon: Icon(Icons.notifications_active)),
+            BottomNavigationBarItem(
+              icon: Icon(
+                Icons.photo_camera,
+                size: 35.0,
+              ),
+            ),
+            BottomNavigationBarItem(icon: Icon(Icons.search)),
+            BottomNavigationBarItem(icon: Icon(Icons.account_circle)),
+          ]),
     );
+    // return RaisedButton(
+    //   child: Text('Logout'),
+    //   onPressed: logout,
+    // );
   }
 
   Scaffold buildUnAuthScreen() {
@@ -174,12 +161,13 @@ class _HomeState extends State<Home> {
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-              begin: Alignment.topRight,
-              end: Alignment.bottomLeft,
-              colors: [
-                Theme.of(context).primaryColor,
-                Theme.of(context).accentColor
-              ]),
+            begin: Alignment.topRight,
+            end: Alignment.bottomLeft,
+            colors: [
+              Theme.of(context).accentColor,
+              Theme.of(context).primaryColor,
+            ],
+          ),
         ),
         alignment: Alignment.center,
         child: Column(
@@ -187,20 +175,26 @@ class _HomeState extends State<Home> {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: <Widget>[
             Text(
-              'Flutter Share',
+              'FlutterShare',
               style: TextStyle(
-                  fontSize: 90.0, color: Colors.white, fontFamily: "Signatra"),
+                fontFamily: "Signatra",
+                fontSize: 90.0,
+                color: Colors.white,
+              ),
             ),
             GestureDetector(
-              onTap: login(),
+              onTap: login,
               child: Container(
                 width: 260.0,
                 height: 60.0,
                 decoration: BoxDecoration(
-                    image: DecorationImage(
-                        image: AssetImage(
-                            'assets/images/google_signin_button.png'),
-                        fit: BoxFit.cover)),
+                  image: DecorationImage(
+                    image: AssetImage(
+                      'assets/images/google_signin_button.png',
+                    ),
+                    fit: BoxFit.cover,
+                  ),
+                ),
               ),
             )
           ],

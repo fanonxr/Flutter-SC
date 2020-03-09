@@ -4,7 +4,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:sc_media_flutter/models/user.dart';
-import 'package:sc_media_flutter/pages/timeline.dart';
+import 'package:sc_media_flutter/pages/activity_feed.dart';
+import 'package:sc_media_flutter/pages/home.dart';
 import 'package:sc_media_flutter/widgets/progress.dart';
 
 class Search extends StatefulWidget {
@@ -13,35 +14,29 @@ class Search extends StatefulWidget {
 }
 
 class _SearchState extends State<Search> {
-  // widget to help clear out the text editing controller
   TextEditingController searchController = TextEditingController();
   Future<QuerySnapshot> searchResultsFuture;
 
-  // method to handle the search
-  handleSearch(query) {
-    Future<QuerySnapshot> users = userRef
+  handleSearch(String query) {
+    Future<QuerySnapshot> users = usersRef
         .where("displayName", isGreaterThanOrEqualTo: query)
         .getDocuments();
-
-    // set the state to the users
     setState(() {
       searchResultsFuture = users;
     });
   }
 
-  // method to clear the search results
   clearSearch() {
     searchController.clear();
   }
 
-  // method to build the search field
   AppBar buildSearchField() {
     return AppBar(
       backgroundColor: Colors.white,
       title: TextFormField(
         controller: searchController,
         decoration: InputDecoration(
-          hintText: "Search for a User...",
+          hintText: "Search for a user...",
           filled: true,
           prefixIcon: Icon(
             Icons.account_box,
@@ -49,7 +44,7 @@ class _SearchState extends State<Search> {
           ),
           suffixIcon: IconButton(
             icon: Icon(Icons.clear),
-            onPressed: () => clearSearch(),
+            onPressed: clearSearch,
           ),
         ),
         onFieldSubmitted: handleSearch,
@@ -64,39 +59,44 @@ class _SearchState extends State<Search> {
         child: ListView(
           shrinkWrap: true,
           children: <Widget>[
-            SvgPicture.asset('assets/images/search.svg',
-                height: orientation == Orientation.portrait ? 300.0 : 200.0),
+            SvgPicture.asset(
+              'assets/images/search.svg',
+              height: orientation == Orientation.portrait ? 300.0 : 200.0,
+            ),
             Text(
               "Find Users",
               textAlign: TextAlign.center,
               style: TextStyle(
-                  color: Colors.white,
-                  fontStyle: FontStyle.italic,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 60.0),
-            )
+                color: Colors.white,
+                fontStyle: FontStyle.italic,
+                fontWeight: FontWeight.w600,
+                fontSize: 60.0,
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  // method to build the search results
   buildSearchResults() {
     return FutureBuilder(
-        future: searchResultsFuture,
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return circularProgress();
-          }
-          List<UserResult> searchResults = [];
-          snapshot.data.documents.forEach((doc) {
-            User user = User.fromDocument(doc);
-            UserResult searchResult = UserResult(user);
-            searchResults.add(searchResult);
-          });
-          return ListView(children: searchResults);
+      future: searchResultsFuture,
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return circularProgress();
+        }
+        List<UserResult> searchResults = [];
+        snapshot.data.documents.forEach((doc) {
+          User user = User.fromDocument(doc);
+          UserResult searchResult = UserResult(user);
+          searchResults.add(searchResult);
         });
+        return ListView(
+          children: searchResults,
+        );
+      },
+    );
   }
 
   @override
@@ -114,6 +114,7 @@ class UserResult extends StatelessWidget {
   final User user;
 
   UserResult(this.user);
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -121,7 +122,7 @@ class UserResult extends StatelessWidget {
       child: Column(
         children: <Widget>[
           GestureDetector(
-            onTap: () => print("tapped"),
+            onTap: () => showProfile(context, profileId: user.id),
             child: ListTile(
               leading: CircleAvatar(
                 backgroundColor: Colors.grey,
@@ -141,7 +142,7 @@ class UserResult extends StatelessWidget {
           Divider(
             height: 2.0,
             color: Colors.white54,
-          )
+          ),
         ],
       ),
     );

@@ -8,18 +8,18 @@ class User {
   final String displayName;
   final String bio;
 
-  User(
-      {this.id,
-      this.username,
-      this.email,
-      this.photoUrl,
-      this.displayName,
-      this.bio});
+  User({
+    this.id,
+    this.username,
+    this.email,
+    this.photoUrl,
+    this.displayName,
+    this.bio,
+  });
 
-  // a static method to get the user
   factory User.fromDocument(DocumentSnapshot doc) {
     return User(
-      id: doc['id'],
+      id: doc.documentID,
       email: doc['email'],
       username: doc['username'],
       photoUrl: doc['photoUrl'],

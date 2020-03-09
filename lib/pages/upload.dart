@@ -17,97 +17,89 @@ class Upload extends StatefulWidget {
   final User currentUser;
 
   Upload({this.currentUser});
+
   @override
   _UploadState createState() => _UploadState();
 }
 
-class _UploadState extends State<Upload> {
-  // Text editing controllers
-  TextEditingController locationController = TextEditingController();
+class _UploadState extends State<Upload>
+    with AutomaticKeepAliveClientMixin<Upload> {
   TextEditingController captionController = TextEditingController();
-  // file that will be from camera or gallery
+  TextEditingController locationController = TextEditingController();
   File file;
-  // bool value to post the image or not
   bool isUploading = false;
-  // a post id
   String postId = Uuid().v4();
 
   handleTakePhoto() async {
     Navigator.pop(context);
-    File cameraImagefile = await ImagePicker.pickImage(
-        source: ImageSource.camera, maxHeight: 675, maxWidth: 960);
-
+    File file = await ImagePicker.pickImage(
+      source: ImageSource.camera,
+      maxHeight: 675,
+      maxWidth: 960,
+    );
     setState(() {
-      this.file = cameraImagefile;
+      this.file = file;
     });
   }
 
   handleChooseFromGallery() async {
     Navigator.pop(context);
-    File galleryImageFile =
-        await ImagePicker.pickImage(source: ImageSource.gallery);
-
+    File file = await ImagePicker.pickImage(source: ImageSource.gallery);
     setState(() {
-      this.file = galleryImageFile;
+      this.file = file;
     });
   }
 
-  // selecting the image via camera or photo gallery in phone
   selectImage(parentContext) {
     return showDialog(
-        context: parentContext,
-        builder: (context) {
-          return SimpleDialog(
-            title: Text("Create Post"),
-            children: <Widget>[
-              SimpleDialogOption(
-                child: Text("Photo with Camera"),
-                onPressed: handleTakePhoto,
-              ),
-              SimpleDialogOption(
-                child: Text("Photo From Gallery"),
-                onPressed: handleChooseFromGallery,
-              ),
-              SimpleDialogOption(
-                child: Text("Cancel"),
-                onPressed: () => Navigator.pop(context),
-              ),
-            ],
-          );
-        });
+      context: parentContext,
+      builder: (context) {
+        return SimpleDialog(
+          title: Text("Create Post"),
+          children: <Widget>[
+            SimpleDialogOption(
+                child: Text("Photo with Camera"), onPressed: handleTakePhoto),
+            SimpleDialogOption(
+                child: Text("Image from Gallery"),
+                onPressed: handleChooseFromGallery),
+            SimpleDialogOption(
+              child: Text("Cancel"),
+              onPressed: () => Navigator.pop(context),
+            )
+          ],
+        );
+      },
+    );
   }
 
-  // method to build the splash screen
   Container buildSplashScreen() {
     return Container(
       color: Theme.of(context).accentColor.withOpacity(0.6),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: <Widget>[
-          SvgPicture.asset(
-            'assets/images/upload.svg',
-            height: 260.0,
-          ),
+          SvgPicture.asset('assets/images/upload.svg', height: 260.0),
           Padding(
-            padding: EdgeInsets.only(top: 20),
+            padding: EdgeInsets.only(top: 20.0),
             child: RaisedButton(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8.0),
-              ),
-              onPressed: () => selectImage(context),
-              child: Text(
-                "Upoload",
-                style: TextStyle(color: Colors.white, fontSize: 22.0),
-              ),
-              color: Colors.deepPurpleAccent,
-            ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8.0),
+                ),
+                child: Text(
+                  "Upload Image",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 22.0,
+                  ),
+                ),
+                color: Colors.deepOrange,
+                onPressed: () => selectImage(context)),
           ),
         ],
       ),
     );
   }
 
-  // method to clear the image if you go back
   clearImage() {
     setState(() {
       file = null;
@@ -119,22 +111,20 @@ class _UploadState extends State<Upload> {
     final path = tempDir.path;
     Im.Image imageFile = Im.decodeImage(file.readAsBytesSync());
     final compressedImageFile = File('$path/img_$postId.jpg')
-      ..writeAsBytesSync(Im.encodeJpg(imageFile, quality: 90));
+      ..writeAsBytesSync(Im.encodeJpg(imageFile, quality: 85));
     setState(() {
       file = compressedImageFile;
     });
   }
 
-  // handling uploading an image
-  uploadImage(ImageFile) async {
-    StorageUploadTask upLoadTask =
-        storageRef.child("post_$postId.jpg").putFile(ImageFile);
-    StorageTaskSnapshot storageSnap = await upLoadTask.onComplete;
+  Future<String> uploadImage(imageFile) async {
+    StorageUploadTask uploadTask =
+        storageRef.child("post_$postId.jpg").putFile(imageFile);
+    StorageTaskSnapshot storageSnap = await uploadTask.onComplete;
     String downloadUrl = await storageSnap.ref.getDownloadURL();
     return downloadUrl;
   }
 
-  // creating the post in firestore
   createPostInFirestore(
       {String mediaUrl, String location, String description}) {
     postsRef
@@ -153,7 +143,6 @@ class _UploadState extends State<Upload> {
     });
   }
 
-  // handling submiting the form
   handleSubmit() async {
     setState(() {
       isUploading = true;
@@ -161,11 +150,10 @@ class _UploadState extends State<Upload> {
     await compressImage();
     String mediaUrl = await uploadImage(file);
     createPostInFirestore(
-        mediaUrl: mediaUrl,
-        location: locationController.text,
-        description: captionController.text);
-
-    // clear out the state
+      mediaUrl: mediaUrl,
+      location: locationController.text,
+      description: captionController.text,
+    );
     captionController.clear();
     locationController.clear();
     setState(() {
@@ -175,33 +163,29 @@ class _UploadState extends State<Upload> {
     });
   }
 
-  // building the upload form
-  buildUpoloadForm() {
+  Scaffold buildUploadForm() {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.white70,
         leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back,
-            color: Colors.black,
-          ),
-          onPressed: clearImage,
-        ),
+            icon: Icon(Icons.arrow_back, color: Colors.black),
+            onPressed: clearImage),
         title: Text(
           "Caption Post",
           style: TextStyle(color: Colors.black),
         ),
-        actions: <Widget>[
+        actions: [
           FlatButton(
             onPressed: isUploading ? null : () => handleSubmit(),
             child: Text(
               "Post",
               style: TextStyle(
-                  color: Colors.blueAccent,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 20.0),
+                color: Colors.blueAccent,
+                fontWeight: FontWeight.bold,
+                fontSize: 20.0,
+              ),
             ),
-          )
+          ),
         ],
       ),
       body: ListView(
@@ -215,8 +199,11 @@ class _UploadState extends State<Upload> {
                 aspectRatio: 16 / 9,
                 child: Container(
                   decoration: BoxDecoration(
-                      image: DecorationImage(
-                          fit: BoxFit.cover, image: FileImage(file))),
+                    image: DecorationImage(
+                      fit: BoxFit.cover,
+                      image: FileImage(file),
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -234,7 +221,9 @@ class _UploadState extends State<Upload> {
               child: TextField(
                 controller: captionController,
                 decoration: InputDecoration(
-                    hintText: ("Wrtie a caption"), border: InputBorder.none),
+                  hintText: "Write a caption...",
+                  border: InputBorder.none,
+                ),
               ),
             ),
           ),
@@ -250,7 +239,7 @@ class _UploadState extends State<Upload> {
               child: TextField(
                 controller: locationController,
                 decoration: InputDecoration(
-                  hintText: "Where was this photo Take",
+                  hintText: "Where was this photo taken?",
                   border: InputBorder.none,
                 ),
               ),
@@ -261,39 +250,45 @@ class _UploadState extends State<Upload> {
             height: 100.0,
             alignment: Alignment.center,
             child: RaisedButton.icon(
-              onPressed: () => getUserLocation,
+              label: Text(
+                "Use Current Location",
+                style: TextStyle(color: Colors.white),
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(30.0),
+              ),
+              color: Colors.blue,
+              onPressed: getUserLocation,
               icon: Icon(
                 Icons.my_location,
                 color: Colors.white,
               ),
-              label: Text(
-                "Current Location",
-                style: TextStyle(color: Colors.white),
-              ),
-              color: Colors.blue,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30.0)),
             ),
-          )
+          ),
         ],
       ),
     );
   }
 
-  // get the user location method
   getUserLocation() async {
-    // get the user positon lat long
     Position position = await Geolocator()
         .getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
     List<Placemark> placemarks = await Geolocator()
         .placemarkFromCoordinates(position.latitude, position.longitude);
     Placemark placemark = placemarks[0];
-    String formatedAddress = "${placemark.locality}, ${placemark.country}";
-    locationController.text = formatedAddress;
+    String completeAddress =
+        '${placemark.subThoroughfare} ${placemark.thoroughfare}, ${placemark.subLocality} ${placemark.locality}, ${placemark.subAdministrativeArea}, ${placemark.administrativeArea} ${placemark.postalCode}, ${placemark.country}';
+    print(completeAddress);
+    String formattedAddress = "${placemark.locality}, ${placemark.country}";
+    locationController.text = formattedAddress;
   }
+
+  bool get wantKeepAlive => true;
 
   @override
   Widget build(BuildContext context) {
-    return file == null ? buildSplashScreen() : buildUpoloadForm();
+    super.build(context);
+
+    return file == null ? buildSplashScreen() : buildUploadForm();
   }
 }

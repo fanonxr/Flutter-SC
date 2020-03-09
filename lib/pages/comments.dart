@@ -11,67 +11,75 @@ class Comments extends StatefulWidget {
   final String postOwnerId;
   final String postMediaUrl;
 
-  Comments({this.postId, this.postOwnerId, this.postMediaUrl});
+  Comments({
+    this.postId,
+    this.postOwnerId,
+    this.postMediaUrl,
+  });
 
   @override
   CommentsState createState() => CommentsState(
-      postId: this.postId,
-      postOwnerId: this.postOwnerId,
-      postMediaUrl: this.postMediaUrl);
+        postId: this.postId,
+        postOwnerId: this.postOwnerId,
+        postMediaUrl: this.postMediaUrl,
+      );
 }
 
 class CommentsState extends State<Comments> {
-  TextEditingController commentsController = TextEditingController();
+  TextEditingController commentController = TextEditingController();
   final String postId;
   final String postOwnerId;
   final String postMediaUrl;
 
-  CommentsState({this.postId, this.postOwnerId, this.postMediaUrl});
+  CommentsState({
+    this.postId,
+    this.postOwnerId,
+    this.postMediaUrl,
+  });
 
-  // method to build the comments
   buildComments() {
-    // get comments in real time
     return StreamBuilder(
-      stream: commentsRef
-          .document(postId)
-          .collection("comments")
-          .orderBy("timestamp", descending: false)
-          .snapshots(),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          return circularProgress();
-        }
-        List<Comment> comments = [];
-        snapshot.data.documents.forEach((doc) {
-          comments.add(Comment.fromDocument(doc));
+        stream: commentsRef
+            .document(postId)
+            .collection('comments')
+            .orderBy("timestamp", descending: false)
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) {
+            return circularProgress();
+          }
+          List<Comment> comments = [];
+          snapshot.data.documents.forEach((doc) {
+            comments.add(Comment.fromDocument(doc));
+          });
+          return ListView(
+            children: comments,
+          );
         });
-        return ListView(children: comments);
-      },
-    );
   }
 
   addComment() {
-    // add the comment to firebase
     commentsRef.document(postId).collection("comments").add({
       "username": currentUser.username,
-      "comment": commentsController.text,
+      "comment": commentController.text,
       "timestamp": timestamp,
       "avatarUrl": currentUser.photoUrl,
-      "userId": currentUser.id
+      "userId": currentUser.id,
     });
     bool isNotPostOwner = postOwnerId != currentUser.id;
     if (isNotPostOwner) {
-      activityFeedRef.document(postOwnerId).collection("feedItems").add({
+      activityFeedRef.document(postOwnerId).collection('feedItems').add({
         "type": "comment",
-        "commentData": commentsController.text,
+        "commentData": commentController.text,
         "timestamp": timestamp,
+        "postId": postId,
         "userId": currentUser.id,
         "username": currentUser.username,
         "userProfileImg": currentUser.photoUrl,
-        "mediaUrl": postMediaUrl
+        "mediaUrl": postMediaUrl,
       });
     }
-    commentsController.clear();
+    commentController.clear();
   }
 
   @override
@@ -80,21 +88,19 @@ class CommentsState extends State<Comments> {
       appBar: header(context, titleText: "Comments"),
       body: Column(
         children: <Widget>[
-          Expanded(
-            child: buildComments(),
-          ),
+          Expanded(child: buildComments()),
           Divider(),
           ListTile(
             title: TextFormField(
-              controller: commentsController,
+              controller: commentController,
               decoration: InputDecoration(labelText: "Write a comment..."),
             ),
             trailing: OutlineButton(
-              onPressed: () => addComment(),
+              onPressed: addComment,
               borderSide: BorderSide.none,
               child: Text("Post"),
             ),
-          )
+          ),
         ],
       ),
     );
@@ -108,12 +114,13 @@ class Comment extends StatelessWidget {
   final String comment;
   final Timestamp timestamp;
 
-  Comment(
-      {this.username,
-      this.userId,
-      this.avatarUrl,
-      this.comment,
-      this.timestamp});
+  Comment({
+    this.username,
+    this.userId,
+    this.avatarUrl,
+    this.comment,
+    this.timestamp,
+  });
 
   factory Comment.fromDocument(DocumentSnapshot doc) {
     return Comment(

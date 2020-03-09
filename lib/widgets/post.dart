@@ -4,13 +4,13 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:sc_media_flutter/models/user.dart';
+import 'package:sc_media_flutter/pages/activity_feed.dart';
 import 'package:sc_media_flutter/pages/comments.dart';
 import 'package:sc_media_flutter/pages/home.dart';
 import 'package:sc_media_flutter/widgets/custom_image.dart';
 import 'package:sc_media_flutter/widgets/progress.dart';
 
 class Post extends StatefulWidget {
-  // post model
   final String postId;
   final String ownerId;
   final String username;
@@ -19,20 +19,20 @@ class Post extends StatefulWidget {
   final String mediaUrl;
   final dynamic likes;
 
-  // constructor for the post object
-  Post(
-      {this.postId,
-      this.ownerId,
-      this.username,
-      this.location,
-      this.description,
-      this.mediaUrl,
-      this.likes});
+  Post({
+    this.postId,
+    this.ownerId,
+    this.username,
+    this.location,
+    this.description,
+    this.mediaUrl,
+    this.likes,
+  });
 
   factory Post.fromDocument(DocumentSnapshot doc) {
     return Post(
       postId: doc['postId'],
-      ownerId: doc['owner'],
+      ownerId: doc['ownerId'],
       username: doc['username'],
       location: doc['location'],
       description: doc['description'],
@@ -41,38 +41,35 @@ class Post extends StatefulWidget {
     );
   }
 
-  // we can now pass methods to the model before we pass it to the widget to display
-  // method to get the like counts
   int getLikeCount(likes) {
-    // if no likes return 0
-    if (likes == 0) {
+    // if no likes, return 0
+    if (likes == null) {
       return 0;
     }
     int count = 0;
-    // if the key-value is set to true add a like var
+    // if the key is explicitly set to true, add a like
     likes.values.forEach((val) {
       if (val == true) {
         count += 1;
       }
     });
-
     return count;
   }
 
   @override
   _PostState createState() => _PostState(
-      postId: this.postId,
-      ownerId: this.ownerId,
-      username: this.username,
-      location: this.location,
-      description: this.description,
-      mediaUrl: this.mediaUrl,
-      likes: this.likes,
-      likeCount: getLikeCount(this.likes));
+        postId: this.postId,
+        ownerId: this.ownerId,
+        username: this.username,
+        location: this.location,
+        description: this.description,
+        mediaUrl: this.mediaUrl,
+        likes: this.likes,
+        likeCount: getLikeCount(this.likes),
+      );
 }
 
 class _PostState extends State<Post> {
-  // post model
   final String currentUserId = currentUser?.id;
   final String postId;
   final String ownerId;
@@ -80,33 +77,29 @@ class _PostState extends State<Post> {
   final String location;
   final String description;
   final String mediaUrl;
-  Map likes;
-  int likeCount;
-  bool isLiked;
   bool showHeart = false;
+  bool isLiked;
+  int likeCount;
+  Map likes;
 
-  // constructor for the post object
-  _PostState(
-      {this.postId,
-      this.ownerId,
-      this.username,
-      this.location,
-      this.description,
-      this.mediaUrl,
-      this.likes,
-      this.likeCount});
+  _PostState({
+    this.postId,
+    this.ownerId,
+    this.username,
+    this.location,
+    this.description,
+    this.mediaUrl,
+    this.likes,
+    this.likeCount,
+  });
 
-  // method to build a post header widget
   buildPostHeader() {
     return FutureBuilder(
       future: usersRef.document(ownerId).get(),
       builder: (context, snapshot) {
-        // display loading if there is no data
         if (!snapshot.hasData) {
           return circularProgress();
         }
-
-        // once data recieved load user data into the pose
         User user = User.fromDocument(snapshot.data);
         return ListTile(
           leading: CircleAvatar(
@@ -114,16 +107,18 @@ class _PostState extends State<Post> {
             backgroundColor: Colors.grey,
           ),
           title: GestureDetector(
-            onTap: () => print("showing profile"),
+            onTap: () => showProfile(context, profileId: user.id),
             child: Text(
               user.username,
-              style:
-                  TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                color: Colors.black,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
           subtitle: Text(location),
           trailing: IconButton(
-            onPressed: () => print("deleteing post"),
+            onPressed: () => print('deleting post'),
             icon: Icon(Icons.more_vert),
           ),
         );
@@ -131,18 +126,16 @@ class _PostState extends State<Post> {
     );
   }
 
-  // method to handle when user likes a post
   handleLikePost() {
     bool _isLiked = likes[currentUserId] == true;
+
     if (_isLiked) {
       postsRef
           .document(ownerId)
           .collection('userPosts')
           .document(postId)
           .updateData({'likes.$currentUserId': false});
-      // remvoe the like from the feed
       removeLikeFromActivityFeed();
-      // update the state
       setState(() {
         likeCount -= 1;
         isLiked = false;
@@ -154,10 +147,7 @@ class _PostState extends State<Post> {
           .collection('userPosts')
           .document(postId)
           .updateData({'likes.$currentUserId': true});
-
-      // send this like to the activity
       addLikeToActivityFeed();
-      // update state
       setState(() {
         likeCount += 1;
         isLiked = true;
@@ -172,9 +162,8 @@ class _PostState extends State<Post> {
     }
   }
 
-  // method to add an like to the activity feed
   addLikeToActivityFeed() {
-    // add a notification to post owners feed
+    // add a notification to the postOwner's activity feed only if comment made by OTHER user (to avoid getting notification for our own like)
     bool isNotPostOwner = currentUserId != ownerId;
     if (isNotPostOwner) {
       activityFeedRef
@@ -184,16 +173,15 @@ class _PostState extends State<Post> {
           .setData({
         "type": "like",
         "username": currentUser.username,
-        'userId': currentUser.id,
-        "userProfilieImg": currentUser.photoUrl,
+        "userId": currentUser.id,
+        "userProfileImg": currentUser.photoUrl,
         "postId": postId,
         "mediaUrl": mediaUrl,
-        "timestamp": timestamp
+        "timestamp": timestamp,
       });
     }
   }
 
-  // method to remove the notification
   removeLikeFromActivityFeed() {
     bool isNotPostOwner = currentUserId != ownerId;
     if (isNotPostOwner) {
@@ -210,59 +198,41 @@ class _PostState extends State<Post> {
     }
   }
 
-  // method to build a post image widget
   buildPostImage() {
     return GestureDetector(
-      onDoubleTap: () => handleLikePost,
+      onDoubleTap: handleLikePost,
       child: Stack(
         alignment: Alignment.center,
         children: <Widget>[
           cachedNetworkImage(mediaUrl),
-//          showHeart
-//              ? Animator(
-//                  duration: Duration(milliseconds: 300),
-//                  tween: Tween(begin: 0.4, end: 2.8),
-//                  curve: Curves.elasticOut,
-//                  cycles: 0,
-//                  builder: (anim) => Transform.scale(
-//                    scale: anim.value,
-//                    child: Icon(
-//                      Icons.favorite,
-//                      size: 80.0,
-//                      color: Colors.red,
-//                    ),
-//                  ),
-//                )
-//              : Text(""),
         ],
       ),
     );
   }
 
-  // method to build a post footage
-  buildPostFootage() {
+  buildPostFooter() {
     return Column(
       children: <Widget>[
         Row(
           mainAxisAlignment: MainAxisAlignment.start,
           children: <Widget>[
-            Padding(
-              padding: EdgeInsets.only(top: 40.0, left: 20.0),
-            ),
+            Padding(padding: EdgeInsets.only(top: 40.0, left: 20.0)),
             GestureDetector(
-              onTap: () => handleLikePost(),
+              onTap: handleLikePost,
               child: Icon(
                 isLiked ? Icons.favorite : Icons.favorite_border,
                 size: 28.0,
                 color: Colors.pink,
               ),
             ),
-            Padding(
-              padding: EdgeInsets.only(right: 20.0),
-            ),
+            Padding(padding: EdgeInsets.only(right: 20.0)),
             GestureDetector(
-              onTap: () => showComments(context,
-                  postId: postId, ownerId: ownerId, mediaUrl: mediaUrl),
+              onTap: () => showComments(
+                context,
+                postId: postId,
+                ownerId: ownerId,
+                mediaUrl: mediaUrl,
+              ),
               child: Icon(
                 Icons.chat,
                 size: 28.0,
@@ -277,10 +247,12 @@ class _PostState extends State<Post> {
               margin: EdgeInsets.only(left: 20.0),
               child: Text(
                 "$likeCount likes",
-                style:
-                    TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  color: Colors.black,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-            )
+            ),
           ],
         ),
         Row(
@@ -290,13 +262,13 @@ class _PostState extends State<Post> {
               margin: EdgeInsets.only(left: 20.0),
               child: Text(
                 "$username ",
-                style:
-                    TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  color: Colors.black,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
-            Expanded(
-              child: Text(description),
-            )
+            Expanded(child: Text(description))
           ],
         ),
       ],
@@ -306,18 +278,18 @@ class _PostState extends State<Post> {
   @override
   Widget build(BuildContext context) {
     isLiked = (likes[currentUserId] == true);
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        // buildPostHeader(),
+        buildPostHeader(),
         buildPostImage(),
-        buildPostFootage()
+        buildPostFooter()
       ],
     );
   }
 }
 
-// method handle displaying the comments of that post
 showComments(BuildContext context,
     {String postId, String ownerId, String mediaUrl}) {
   Navigator.push(context, MaterialPageRoute(builder: (context) {
